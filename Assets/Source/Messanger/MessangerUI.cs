@@ -1,37 +1,45 @@
 using TMPro;
-using Unity.Netcode;
-using Unity.Services.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class MessangerUI : MonoBehaviour
 {
     [SerializeField] private Interlocutor _interlocutor;
-    [SerializeField] private MessagesScrollView _messagesScrollView;
     [SerializeField] private TMP_InputField _messageField;
+    [SerializeField] private TMP_InputField _interlocutorNameField;
     [SerializeField] private Button _sendButton;
+    [SerializeField] private Button _setNameButton;
+    [SerializeField] private GameObject _messagePrefab;
+    [SerializeField] private Transform _messagesScrollViewContent;
 
-    private async void OnEnable()
+    private void OnEnable()
     {
-        await UnityServices.InitializeAsync();
-
-        NetworkManager.Singleton.OnClientConnectedCallback += SetInterlocutor;
+        _interlocutor.MessageReady += ShowMessage;
         _sendButton.onClick.AddListener(SendMessage);
+        _setNameButton.onClick.AddListener(SetName);
     }
 
     private void OnDisable()
     {
-        NetworkManager.Singleton.OnClientConnectedCallback -= SetInterlocutor;
-        _interlocutor.MessageReady += _messagesScrollView.ShowMessage;
+        _interlocutor.MessageReady += ShowMessage;
         _sendButton.onClick.RemoveListener(SendMessage);
+        _setNameButton.onClick.RemoveListener(SetName);
     }
 
-    private void SendMessage() =>
-        _interlocutor.SendMessage(_messageField.text);
-
-    private void SetInterlocutor(ulong clientId)
+    public void ShowMessage(string interculatorName, string message)
     {
-        _interlocutor = FindAnyObjectByType<Interlocutor>();
-        _interlocutor.MessageReady += _messagesScrollView.ShowMessage;
+        GameObject instantiatedObject = Instantiate(_messagePrefab, _messagesScrollViewContent);
+
+        if (instantiatedObject.TryGetComponent<MessageView>(out MessageView messageView))
+            messageView.Fill(interculatorName, message);
     }
+
+    private void SendMessage()
+    {
+        _interlocutor.SendMessage(_messageField.text);
+        _messageField.text = "";
+    }
+
+    private void SetName() =>
+        _interlocutor.SetName(_interlocutorNameField.text);
 }
